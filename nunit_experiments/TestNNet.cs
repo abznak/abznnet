@@ -9,9 +9,68 @@
 using System;
 using NUnit.Framework;
 
+using com.abznak.evolve;
+
 namespace com.abznak.nnet
 {
+
+	public class EvolvingDouble :Evolveable<EvolvingDouble> {
+		public double d {get; private set;}
+		public EvolvingDouble(double d){
+			this.d = d;
+		}
+		public double getFitness() {
+			return d;			
+		}
+		public EvolvingDouble makeChild(MutationFunction mf) {
+			return new EvolvingDouble(mf(d));
+		}
+	}
+	[TestFixture]	
+	public class TestEvolvingDouble {
+		[Test]
+		public static void Test() {
+			EvolvingDouble ed1 = new EvolvingDouble(1);
+			Assert.AreEqual(1, ed1.d);
+			EvolvingDouble ed2 = ed1.makeChild((double d) => d + 1);
+			Assert.AreEqual(2, ed2.d);		
+		}
+
+	}
+	[TestFixture]
+	public class TestHillClimber {
+		private EvolvingDouble ed;
+		private HillClimber<EvolvingDouble> hc;
+		
+		[Test]
+		[TestFixtureSetUp]
+		public void TestCtor() {
+			ed = new EvolvingDouble(1);
+			hc = new HillClimber<EvolvingDouble>(ed);
+			Assert.AreSame(ed, hc.indiv);
+			Assert.AreEqual(1, hc.indiv.getFitness());
+		}
+		
+		[Test]
+		public void TestWorseTick() {
+			hc.tick((double d) => d - 1);
+			Assert.AreSame(ed, hc.indiv, "don't change the individual if new one is worse");
+			Assert.AreEqual(1, hc.indiv.getFitness());
+		}
+
+		[Test]
+		public void TestBetterTick() {
+			hc.tick((double d) => d + 1);
+			Assert.AreNotSame(ed, hc.indiv, "don't change the individual if new one is worse");
+			Assert.AreEqual(2, hc.indiv.getFitness());
+		}
+		
+	}
 	
+
+		
+		
+		
 	[TestFixture]
 	public class TestNNet
 	{
@@ -43,6 +102,17 @@ namespace com.abznak.nnet
 		private double[][][] want_weights;
 		
 
+		[Test]
+		public void TestCloneWeights() {
+			double[][][] want_weights = makeWeights();
+			double[][][] got_weights = FeedForwardNNet.cloneWeights(want_weights);
+			Assert.AreSame(want_weights, want_weights);
+			Assert.AreNotSame(want_weights, got_weights);
+			Assert.AreEqual(want_weights, got_weights);
+			got_weights[0][0][0] = 1000;
+			Assert.AreNotEqual(want_weights, got_weights);
+		
+		}
 		[Test]
 		public void TestConstruct()
 		{

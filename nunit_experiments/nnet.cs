@@ -9,9 +9,47 @@
 using System;
 
 namespace com.abznak.evolve {
-	public interface Evolveable<T> {
-		T makeChild(double mutationRate);
-	}	
+	/// <summary>
+	/// function for changing the innards of a copy of an evolveable object.
+	/// TODO: it's a v0.x, I'll worry about mutating things with non-double innards if and when necessary.
+	/// </summary>
+	public delegate double MutationFunction(double input);		
+	
+	public interface Mutateable<T> {
+		T makeChild(MutationFunction mf);		
+	}
+	public interface Evolveable<T> : Mutateable<T> {
+		/// <summary>
+		/// get the fitness of the object. Higher fitness is better.
+		/// </summary>
+		/// <returns></returns>
+		double getFitness();
+	}
+	public interface Factory<T> {
+		T makeIndiv();
+	}
+	public class HillClimber<T> where T : Evolveable<T> {
+		public T indiv {get; private set;}
+		public int generation {get; private set;}
+					
+		public HillClimber(T first) {
+			this.indiv = first;						
+			this.generation = 0;
+		}
+		public void tick(MutationFunction mf) {
+			T newguy = indiv.makeChild(mf);
+			if (newguy.getFitness() > indiv.getFitness()) {
+				indiv = newguy;
+			}
+		}				
+	}
+
+	public class Population<U,T> where U : Evolveable<T> {
+		
+	}
+	
+	/*public interface CoEvolveable<T> : Evolveable<T> {		
+	}*/
 }
 
 namespace com.abznak.nnet
@@ -20,6 +58,7 @@ namespace com.abznak.nnet
 	/// activation function is used to scale the output of a neuron 
 	/// </summary>
 	public delegate double ActivationFunction(double input);
+
 	/// <summary>
 	/// Description of Class1.
 	/// </summary>
@@ -37,7 +76,7 @@ namespace com.abznak.nnet
 		private static double id(double d) { return d;}
 	}
 	
-	public class FeedForwardNNet : NNet, evolve.Evolveable<FeedForwardNNet> {
+	public class FeedForwardNNet : NNet, evolve.Mutateable<FeedForwardNNet> {
 		public int input_count {get; private set;}
 		public int output_count {get; private set;}
 		public double[][][] weights {get; private set;}
@@ -65,9 +104,30 @@ namespace com.abznak.nnet
 		public bool isSane() {
 			throw new Exception("NYI");
 		}
-		
+		public FeedForwardNNet makeChild(evolve.MutationFunction mf) {
+			return null;
+		}
 		public FeedForwardNNet makeChild(double mutationRate) {
 			return null;
+		}
+		
+		/// <summary>
+		/// make a deep clone of a weights array
+		/// </summary>
+		/// <param name="weights">a ragged array of weights</param>
+		/// <returns>a copy of weights, with no shared references</returns>
+		public static double[][][] cloneWeights(double[][][] weights) {
+			double[][][] ret = new double[weights.Length][][];
+			for (int li = 0; li < weights.Length; li++) {			
+				double[][] old_layer = weights[li];
+				double[][] new_layer = new double[old_layer.Length][];
+				for (int di = 0; di < old_layer.Length; di++) {
+					//can clone the last bit, because there are no references in a double[]
+					new_layer[di] = (double[])old_layer[di].Clone();
+				}
+				ret[li] = new_layer;
+			}
+			return ret;
 		}
 		public override double[] process(double[] src) {
 			activations = new double[weights.Length+1][];  //note that activations[0] is src, whereas weights[0] is hidden layer 1
