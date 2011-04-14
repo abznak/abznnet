@@ -39,6 +39,73 @@ namespace com.abznak.nnet
 	}
 	[TestFixture]
 	public class TestFunctionFitter {
+		private FunctionFitter.RangeSpec range;
+		private NNet nn;
+		private FunctionFitter ff;
+		double range_min, range_max, range_cnt;
+
+		[Test]
+		public void makeFFRange() {
+			range_min = -2*Math.PI;
+			range_max = -range_min;
+			range_cnt = 1000;
+			
+			range = new FunctionFitter.RangeSpec(range_min, range_max, range_cnt);
+			Assert.AreEqual(range_min, range.min, "diff: " + (range_min - range.min));
+			Assert.AreEqual(range_max, range.max);
+			Assert.AreEqual(range_cnt, range.count);
+			
+		}
+		[Test]
+		public void testRange() {
+			makeFFRange();
+			for (int i = 0; i < 1000; i++) {
+				double sample = range.getSample();
+				Assert.That(sample, Is.GreaterThanOrEqualTo(range_min));
+				Assert.That(sample, Is.LessThanOrEqualTo(range_max));				
+			}
+			
+		}
+		
+		
+		
+		[Test]
+		public void testFF() {
+			//makeFF();
+			
+		}
+		
+		[Test]
+		public void makeFFImperfect() {
+			makeFF((double d) => d * 1 + 3);
+			double fitness = ff.getFitness();
+			Assert.That(fitness, Is.LessThan(0));
+		}
+		
+		[Test]
+		public void makeFFPerfect() {
+			makeFF((double d) => d * 2 + .5);
+			double fitness = ff.getFitness();
+			Assert.AreEqual(0, fitness);
+				
+		}
+		public void makeFF(DoubleFunction fn) {				
+			makeFFRange();			
+			var weights = new double[][][] {
+				new double[][] { new double[] { 2, .5} }  // d * 2 + .5
+			};			
+			nn = new FeedForwardNNet(weights, NNet.AF_ID);			
+			ff = new FunctionFitter(nn, fn, range);
+			Assert.AreSame(nn, ff.nnet);
+			Assert.AreSame(fn, ff.fn);									
+			//nn = new FeedForwardNNet(			
+		}
+		
+		[Test]
+		public void TestFit() {
+			//ff.
+		}
+		
 		
 	}
 	
@@ -148,7 +215,7 @@ namespace com.abznak.nnet
 			want_in = 2;
 			want_out = 3;
 			want_weights = makeWeights();
-			nn = new FeedForwardNNet(want_in, want_out, makeWeights(), NNet.AF_ID);
+			nn = new FeedForwardNNet(makeWeights(), NNet.AF_ID);
 		}
 		private double[][][] makeWeights() {
 			return new double[][][] {
@@ -159,7 +226,7 @@ namespace com.abznak.nnet
 			
 		}
 		
-		[Test]
+  		[Test]
 		public void makeOffsetNN() {
 			want_in = 1;
 			want_out = 1;
@@ -167,7 +234,7 @@ namespace com.abznak.nnet
 			want_weights = new double[][][] {
 				new double[][] { new double[] {0, offset}}
 			};
-			nn = new FeedForwardNNet(want_in, want_out, want_weights, NNet.AF_ID);
+			nn = new FeedForwardNNet( want_weights, NNet.AF_ID);
 			double[] got = nn.process(new double[] {5});
 			Assert.AreEqual(offset, got[0]);
 		}
@@ -177,7 +244,7 @@ namespace com.abznak.nnet
 			want_weights = new double[][][] {
 				new double[][] { new double[] {.5, .5, 0}}
 			};
-			nn = new FeedForwardNNet(want_in, want_out, want_weights, NNet.AF_ID);
+			nn = new FeedForwardNNet(want_weights, NNet.AF_ID);
 		}
 		[Test]
 		public void makeMultiLevelNN() {
@@ -187,7 +254,7 @@ namespace com.abznak.nnet
 				new double[][] { new double[] {2, 0} },
 				new double[][] { new double[] {3, 0} },				
 			};
-			nn = new FeedForwardNNet(want_in, want_out, want_weights, NNet.AF_ID);
+			nn = new FeedForwardNNet(want_weights, NNet.AF_ID);
 			double[] got = nn.process(new double[] {5});		
 			Assert.AreEqual(2*3*5, got[0]);
 		}

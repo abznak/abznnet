@@ -82,11 +82,51 @@ namespace com.abznak.nnet
 		private static double id(double d) { return d;}
 	}
 	
-	public class FunctionFitter : FeedForwardNNet, evolve.Evolveable<FunctionFitter> {
-		DoubleFunction fn {get; private set;}
-		public FunctionFitter(int input_count, int output_count, double[][][] weights, ActivationFunction af, DoubleFunction fn) : base(input_count, output_count, weights,af) {
-			this.fn = fn;
+	public class FunctionFitter : evolve.Evolveable<FunctionFitter> {
+		private static Random rnd = new Random();
+		public struct RangeSpec {
+			public readonly double min;
+			public readonly double max;
+			public readonly double count;
+			public RangeSpec(double min, double max, double count) {
+				this.min = min;
+				this.max = max;
+				this.count = count;
+			}
+			public double getSample() {
+				return rnd.NextDouble() * (max - min) + min;
+			}
 		}
+		
+		
+		
+		public NNet nnet {get; private set;}
+		public DoubleFunction fn {get; private set;}
+		/*public double range_min {get; private set;}
+		public double range_max {get; private set;}
+		public int range_count {get; private set;}*/
+		public RangeSpec range {get; private set;}
+
+		public FunctionFitter(NNet nnet, DoubleFunction fn, RangeSpec range) {
+			this.nnet = nnet;
+			this.fn = fn;
+			this.range = range;
+		}
+		public FunctionFitter makeChild(evolve.MutationFunction mf) {
+			return null;
+		}
+		/// <summary>
+		/// returns negative of square of error between the NN and the fn
+		/// </summary>
+		/// <returns></returns>
+		public double getFitness() {
+			double tot = 0;			
+			for (int i = 0; i < range.count; i++) {
+				double sample = range.getSample();
+				tot += Math.Pow(fn(sample) - nnet.process(new double[] { sample })[0],2);
+			}
+			return -tot/range.count;
+		}			
 		
 	}
 	public class FeedForwardNNet : NNet, evolve.Mutateable<FeedForwardNNet> {
@@ -101,12 +141,10 @@ namespace com.abznak.nnet
 		/// Create feed forward, fully connected simulated Neural Network.
 		/// For efficiency and lazieness reasons, weights isn't deep copied as much as it should be. so... don't mess with it.
 		/// </summary>
-		/// <param name="input_count">number of inputs</param>
-		/// <param name="output_count">number of outputs</param>
 		/// <param name="weights">weights by layer, dst neuron, src neuron. at the end of each list of weights is an offset (i.e. a weight for a neuron that always outputs 1).</param>
-		public FeedForwardNNet(int input_count, int output_count, double[][][] weights, ActivationFunction af) {
-			this.input_count = input_count;
-			this.output_count = output_count;
+		public FeedForwardNNet(double[][][] weights, ActivationFunction af) {
+			this.input_count = weights[0][0].Length - 1;  //-1 to account for offset weight
+			this.output_count = weights[weights.Length - 1].Length;
 			this.weights = weights;
 			this.af = af;
 		}
