@@ -38,6 +38,11 @@ namespace com.abznak.nnet
 
 	}
 	[TestFixture]
+	public class TestFunctionFitter {
+		
+	}
+	
+	[TestFixture]
 	public class TestHillClimber {
 		private EvolvingDouble ed;
 		private HillClimber<EvolvingDouble> hc;
@@ -49,20 +54,26 @@ namespace com.abznak.nnet
 			hc = new HillClimber<EvolvingDouble>(ed);
 			Assert.AreSame(ed, hc.indiv);
 			Assert.AreEqual(1, hc.indiv.getFitness());
+			Assert.AreEqual(0, hc.generation, "generation should start at 0");
+			Assert.AreEqual(0, hc.better_count, "better_count should start at 0");
 		}
 		
 		[Test]
 		public void TestWorseTick() {
 			hc.tick((double d) => d - 1);
 			Assert.AreSame(ed, hc.indiv, "don't change the individual if new one is worse");
-			Assert.AreEqual(1, hc.indiv.getFitness());
+			Assert.AreEqual(1, hc.indiv.getFitness(), "fitness should not change if new indiv is worse");
+			Assert.AreEqual(1, hc.generation, "generation should increase after tick");
+			Assert.AreEqual(0, hc.better_count, "better_count should not increase with worse indiv");
 		}
 
 		[Test]
 		public void TestBetterTick() {
 			hc.tick((double d) => d + 1);
-			Assert.AreNotSame(ed, hc.indiv, "don't change the individual if new one is worse");
-			Assert.AreEqual(2, hc.indiv.getFitness());
+			Assert.AreNotSame(ed, hc.indiv, "do change the individual if new one is better");
+			Assert.AreEqual(2, hc.indiv.getFitness(), "fitness should change if new indiv is better");
+			Assert.AreEqual(1, hc.generation, "generation should increase after tick");			
+			Assert.AreEqual(1, hc.better_count, "better_count should increase with better indiv");			
 		}
 		
 	}

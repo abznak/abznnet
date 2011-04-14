@@ -31,16 +31,21 @@ namespace com.abznak.evolve {
 	public class HillClimber<T> where T : Evolveable<T> {
 		public T indiv {get; private set;}
 		public int generation {get; private set;}
+		public int better_count {get; private set;}
+		
 					
 		public HillClimber(T first) {
 			this.indiv = first;						
 			this.generation = 0;
+			
 		}
 		public void tick(MutationFunction mf) {
 			T newguy = indiv.makeChild(mf);
 			if (newguy.getFitness() > indiv.getFitness()) {
 				indiv = newguy;
+				better_count++;
 			}
+			generation++;
 		}				
 	}
 
@@ -58,6 +63,7 @@ namespace com.abznak.nnet
 	/// activation function is used to scale the output of a neuron 
 	/// </summary>
 	public delegate double ActivationFunction(double input);
+	public delegate double DoubleFunction(double input);	
 
 	/// <summary>
 	/// Description of Class1.
@@ -76,6 +82,13 @@ namespace com.abznak.nnet
 		private static double id(double d) { return d;}
 	}
 	
+	public class FunctionFitter : FeedForwardNNet, evolve.Evolveable<FunctionFitter> {
+		DoubleFunction fn {get; private set;}
+		public FunctionFitter(int input_count, int output_count, double[][][] weights, ActivationFunction af, DoubleFunction fn) : base(input_count, output_count, weights,af) {
+			this.fn = fn;
+		}
+		
+	}
 	public class FeedForwardNNet : NNet, evolve.Mutateable<FeedForwardNNet> {
 		public int input_count {get; private set;}
 		public int output_count {get; private set;}
