@@ -42,20 +42,20 @@ namespace Abznak.Evolve {
 	/// </summary>
 	public delegate double MutationFunction(double input);		
 	
-	public interface Mutateable<T> {
+	public interface IMutateable<T> {
 		T makeChild(MutationFunction mf);		
 	}
-	public interface Evolveable<T> : Mutateable<T> {
+	public interface IEvolveable<T> : IMutateable<T> {
 		/// <summary>
 		/// get the fitness of the object. Higher fitness is better.
 		/// </summary>
 		/// <returns></returns>
 		double getFitness();
 	}
-	public interface Factory<T> {
+	public interface IEvolvableFactory<T> {
 		T makeIndiv();
 	}
-	public class HillClimber<T> where T : Evolveable<T> {
+	public class HillClimber<T> where T : IEvolveable<T> {
 		
 		
 		public T indiv {get; private set;}
@@ -88,7 +88,7 @@ namespace Abznak.Evolve {
 		}				
 	}
 
-	public class Population<U,T> where U : Evolveable<T> {
+	public class Population<U,T> where U : IEvolveable<T> {
 		
 	}
 	
@@ -123,7 +123,7 @@ namespace Abznak.NeuralNet
 		private static double id(double d) { return d;}
 	}
 	
-	public class FunctionFitter : Evolve.Evolveable<FunctionFitter> {
+	public class FunctionFitter : Evolve.IEvolveable<FunctionFitter> {
 		
 		public struct RangeSpec {
 			public readonly double min;
@@ -184,7 +184,7 @@ namespace Abznak.NeuralNet
 		}			
 		
 	}
-	public class FeedForwardNNet : NNet, Evolve.Mutateable<FeedForwardNNet> {
+	public class FeedForwardNNet : NNet, Evolve.IMutateable<FeedForwardNNet> {
 		public int input_count {get; private set;}
 		public int output_count {get; private set;}
 		public double[][][] weights {get; private set;}

@@ -33,7 +33,7 @@ using Abznak.Evolve;
 namespace Abznak.NeuralNet
 {
 
-	public class EvolvingDouble :Evolveable<EvolvingDouble> {
+	public class EvolvingDouble :IEvolveable<EvolvingDouble> {
 		public double d {get; private set;}
 		public EvolvingDouble(double d){
 			this.d = d;
