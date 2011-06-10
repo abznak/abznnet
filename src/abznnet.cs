@@ -27,6 +27,7 @@ using System;
 using System.IO;
 
 namespace Abznak.Evolve {
+	//TODO: name could cause collisions. Rename? Repackage?
 	public class Util {
 		public static readonly MutationFunction MF_SMALL_RND = (double d) => d + Util.Rnd(-.05, .05);		
 		private static Random random = new Random();
@@ -42,9 +43,16 @@ namespace Abznak.Evolve {
 	/// </summary>
 	public delegate double MutationFunction(double input);		
 	
+	/// <summary>
+	/// objects than can spawn variations of themselves
+	/// </summary>
 	public interface IMutateable<T> {
 		T MakeChild(MutationFunction mf);		
 	}
+
+	/// <summary>
+	/// objects that can be evolved using Abznak.Evolve's strategies
+	/// </summary>
 	public interface IEvolveable<T> : IMutateable<T> {
 		/// <summary>
 		/// get the fitness of the object. Higher fitness is better.
@@ -52,24 +60,34 @@ namespace Abznak.Evolve {
 		/// <returns></returns>
 		double GetFitness();
 	}
+
+
+/*
 	public interface IEvolvableFactory<T> {
 		T MakeIndiv();
-	}
+	}*/
 	public class HillClimber<T> where T : IEvolveable<T> {
 		
-		
-		public T indiv {get; private set;}
+		/// <summary>
+		/// the current, fittest, individual
+		/// </summary>
+		public T indiv {get; private set;}		
 		public int generation {get; private set;}
-		public int better_count {get; private set;}
+		public int betterCount {get; private set;}
 		
-					
+		/// <summary>
+		/// create a hill climber.  A hill climber works by taking an 
+		/// individual, mutating it so that there are two and then keeping 
+		/// whichever of the two is has the highest fitness.
+		/// </summary>
+		/// <param name="first"></param>
 		public HillClimber(T first) {
 			this.indiv = first;						
 			this.generation = 0;
 			
 		}
 		/// <summary>
-		/// run another generateion
+		/// run another generation
 		/// </summary>
 		/// <param name="mf">mutation function to use on the indiv</param>
 		/// <returns>new fitness</returns>
@@ -81,7 +99,7 @@ namespace Abznak.Evolve {
 			if (new_fitness > old_fitness) {
 				indiv = newguy;
 				fitness = new_fitness;
-				better_count++;
+				betterCount++;
 			}
 			generation++;
 			return fitness;
@@ -89,7 +107,7 @@ namespace Abznak.Evolve {
 	}
 
 	public class Population<U,T> where U : IEvolveable<T> {
-		
+		//NYI - Not yet implemented
 	}
 	
 	/*public interface CoEvolveable<T> : Evolveable<T> {		
@@ -107,7 +125,7 @@ namespace Abznak.NeuralNet
 	public delegate double DoubleFunction(double input);	
 
 	/// <summary>
-	/// Description of Class1.
+	/// Base class for making neural networks
 	/// </summary>
 	public abstract class NNet
 	{
@@ -120,16 +138,19 @@ namespace Abznak.NeuralNet
 		/// </summary>
 		public static readonly ActivationFunction AF_TANH = delegate(double d) {return Math.Tanh(d);};
 		public abstract double[] Process(double[] src);
-		/// <summary>
+/*		/// <summary>
 		/// TODO: is this used?
 		/// </summary>
 		/// <param name="d"></param>
 		/// <returns></returns>
-		private static double Id(double d) { return d;}
+		private static double Id(double d) { return d;}*/
 	}
 	
 	public class FunctionFitter : Evolve.IEvolveable<FunctionFitter> {
 		
+		/// <summary>
+		/// a set of rules for choosing doubles to examine
+		/// </summary>
 		public struct RangeSpec {
 			public readonly double min;
 			public readonly double max;
@@ -140,8 +161,7 @@ namespace Abznak.NeuralNet
 				this.count = count;
 			}
 			public double GetSample() {
-				return Util.Rnd(min, max);
-				
+				return Util.Rnd(min, max);				
 			}
 		}
 		
@@ -149,16 +169,24 @@ namespace Abznak.NeuralNet
 		
 		public FeedForwardNNet nnet {get; private set;}
 		public DoubleFunction fn {get; private set;}
-		/*public double range_min {get; private set;}
-		public double range_max {get; private set;}
-		public int range_count {get; private set;}*/
 		public RangeSpec range {get; private set;}
 
+		/// <summary>
+		/// object for evolving a neural network that has outputs similar to a function
+		/// </summary>
+		/// <param name="nnet">the neural network to test for similarity to fn</param>
+		/// <param name="fn">the function that we are trying to be similar to</param>
+		/// <param name="range">the range of values in which to perform the tests</param>
 		public FunctionFitter(FeedForwardNNet nnet, DoubleFunction fn, RangeSpec range) {
 			this.nnet = nnet;
 			this.fn = fn;
 			this.range = range;
 		}
+		/// <summary>
+		/// create a mutated version of this object by applying mf to each weight in the underlying neural network.
+		/// </summary>
+		/// <param name="mf"></param>
+		/// <returns></returns>
 		public FunctionFitter MakeChild(Evolve.MutationFunction mf) {			
 			return new FunctionFitter(nnet.MakeChild(mf), fn, range);
 		}
@@ -170,6 +198,12 @@ namespace Abznak.NeuralNet
 		public double GetFitness() {
 			return GetFitness("", null);
 		}
+		/// <summary>
+		/// same as GetFitness(), but also saves the samples to a log
+		/// </summary>
+		/// <param name="prefix">a string to identify this call in the log file</param>
+		/// <param name="log">a file to log the test samples to</param>
+		/// <returns></returns>
 		public double GetFitness(string prefix, StreamWriter log) {			
 			long debug_time = DateTime.Now.Ticks;
 			
@@ -189,8 +223,8 @@ namespace Abznak.NeuralNet
 		
 	}
 	public class FeedForwardNNet : NNet, Evolve.IMutateable<FeedForwardNNet> {
-		public int input_count {get; private set;}
-		public int output_count {get; private set;}
+		public int inputCount {get; private set;}
+		public int outputCount {get; private set;}
 		public double[][][] weights {get; private set;}
 		//public double[][] sums {get; private set;}
 		public double[][] activations {get; private set;}
@@ -198,12 +232,12 @@ namespace Abznak.NeuralNet
 
 		/// <summary>
 		/// Create feed forward, fully connected simulated Neural Network.
-		/// For efficiency and lazieness reasons, weights isn't deep copied as much as it should be. so... don't mess with it.
+		/// For efficiency and lazyness reasons, the weights array isn't deep copied as much as it should be. so... don't mess with it.
 		/// </summary>
 		/// <param name="weights">weights by layer, dst neuron, src neuron. at the end of each list of weights is an offset (i.e. a weight for a neuron that always outputs 1).</param>
 		public FeedForwardNNet(double[][][] weights, ActivationFunction af) {
-			this.input_count = weights[0][0].Length - 1;  //-1 to account for offset weight
-			this.output_count = weights[weights.Length - 1].Length;
+			this.inputCount = weights[0][0].Length - 1;  //-1 to account for offset weight
+			this.outputCount = weights[weights.Length - 1].Length;
 			this.weights = weights;
 			this.af = af;
 		}
@@ -214,6 +248,11 @@ namespace Abznak.NeuralNet
 		public bool IsSane() {
 			throw new Exception("NYI");
 		}
+		/// <summary>
+		/// creates a new FeedForwardNNet that is a slight variation on this one.
+		/// </summary>
+		/// <param name="mf">the mutation function to be applied to each existing weight</param>
+		/// <returns>a new object with mutated weights</returns>
 		public FeedForwardNNet MakeChild(Evolve.MutationFunction mf) {
 			return new FeedForwardNNet(MutateWeights(weights, mf), af);
 		}
@@ -226,6 +265,12 @@ namespace Abznak.NeuralNet
 		public static double[][][] CloneWeights(double[][][] weights) {
 			return MutateWeights(weights, (double d) => d); //less efficient that possible, but I'd rather that than duplicate code
 		}
+		/// <summary>
+		/// randomly vary a weights array by applying fn to each value
+		/// </summary>
+		/// <param name="weights">the weights array to vary</param>
+		/// <param name="fn">the function to vary them by</param>
+		/// <returns>the mutated set of weights</returns>
 		public static double[][][] MutateWeights(double[][][] weights, MutationFunction fn) {			
 			double[][][] ret = new double[weights.Length][][];
 			for (int li = 0; li < weights.Length; li++) {			
