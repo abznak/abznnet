@@ -9,7 +9,7 @@
 using System;
 using System.IO;
 
-namespace com.abznak.evolve {
+namespace Abznak.Evolve {
 	public class Util {
 		public static readonly MutationFunction MF_SMALL_RND = (double d) => d + Util.rnd(-.05, .05);		
 		private static Random random = new Random();
@@ -79,9 +79,9 @@ namespace com.abznak.evolve {
 	}*/
 }
 
-namespace com.abznak.nnet
+namespace Abznak.NeuralNet
 {
-	using com.abznak.evolve;
+	using Abznak.Evolve;
 	
 	/// <summary>
 	/// activation function is used to scale the output of a neuron 
@@ -106,7 +106,7 @@ namespace com.abznak.nnet
 		private static double id(double d) { return d;}
 	}
 	
-	public class FunctionFitter : evolve.Evolveable<FunctionFitter> {
+	public class FunctionFitter : Evolve.Evolveable<FunctionFitter> {
 		
 		public struct RangeSpec {
 			public readonly double min;
@@ -137,7 +137,7 @@ namespace com.abznak.nnet
 			this.fn = fn;
 			this.range = range;
 		}
-		public FunctionFitter makeChild(evolve.MutationFunction mf) {			
+		public FunctionFitter makeChild(Evolve.MutationFunction mf) {			
 			return new FunctionFitter(nnet.makeChild(mf), fn, range);
 		}
 		
@@ -167,7 +167,7 @@ namespace com.abznak.nnet
 		}			
 		
 	}
-	public class FeedForwardNNet : NNet, evolve.Mutateable<FeedForwardNNet> {
+	public class FeedForwardNNet : NNet, Evolve.Mutateable<FeedForwardNNet> {
 		public int input_count {get; private set;}
 		public int output_count {get; private set;}
 		public double[][][] weights {get; private set;}
@@ -193,7 +193,7 @@ namespace com.abznak.nnet
 		public bool isSane() {
 			throw new Exception("NYI");
 		}
-		public FeedForwardNNet makeChild(evolve.MutationFunction mf) {
+		public FeedForwardNNet makeChild(Evolve.MutationFunction mf) {
 			return new FeedForwardNNet(mutateWeights(weights, mf), af);
 		}
 		

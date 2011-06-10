@@ -10,9 +10,9 @@ using System;
 using NUnit.Framework;
 using System.IO;
 
-using com.abznak.evolve;
+using Abznak.Evolve;
 
-namespace com.abznak.nnet
+namespace Abznak.NeuralNet
 {
 
 	public class EvolvingDouble :Evolveable<EvolvingDouble> {
