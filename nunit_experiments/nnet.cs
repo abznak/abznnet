@@ -7,8 +7,18 @@
  * To change this template use Tools | Options | Coding | Edit Standard Headers.
  */
 using System;
+using System.IO;
 
 namespace com.abznak.evolve {
+	public class Util {
+		public static readonly MutationFunction MF_SMALL_RND = (double d) => d + Util.rnd(-.05, .05);		
+		private static Random random = new Random();
+		public static double rnd(double min, double max) {
+			return random.NextDouble() * (max - min) + min;		
+		}
+	}
+	
+	
 	/// <summary>
 	/// function for changing the innards of a copy of an evolveable object.
 	/// TODO: it's a v0.x, I'll worry about mutating things with non-double innards if and when necessary.
@@ -29,6 +39,8 @@ namespace com.abznak.evolve {
 		T makeIndiv();
 	}
 	public class HillClimber<T> where T : Evolveable<T> {
+		
+		
 		public T indiv {get; private set;}
 		public int generation {get; private set;}
 		public int better_count {get; private set;}
@@ -39,13 +51,23 @@ namespace com.abznak.evolve {
 			this.generation = 0;
 			
 		}
-		public void tick(MutationFunction mf) {
+		/// <summary>
+		/// run another generateion
+		/// </summary>
+		/// <param name="mf">mutation function to use on the indiv</param>
+		/// <returns>new fitness</returns>
+		public double tick(MutationFunction mf) {
 			T newguy = indiv.makeChild(mf);
-			if (newguy.getFitness() > indiv.getFitness()) {
+			double old_fitness = indiv.getFitness();
+			double new_fitness = newguy.getFitness();
+			double fitness = old_fitness;
+			if (new_fitness > old_fitness) {
 				indiv = newguy;
+				fitness = new_fitness;
 				better_count++;
 			}
 			generation++;
+			return fitness;
 		}				
 	}
 
@@ -59,6 +81,8 @@ namespace com.abznak.evolve {
 
 namespace com.abznak.nnet
 {
+	using com.abznak.evolve;
+	
 	/// <summary>
 	/// activation function is used to scale the output of a neuron 
 	/// </summary>
@@ -83,7 +107,7 @@ namespace com.abznak.nnet
 	}
 	
 	public class FunctionFitter : evolve.Evolveable<FunctionFitter> {
-		private static Random rnd = new Random();
+		
 		public struct RangeSpec {
 			public readonly double min;
 			public readonly double max;
@@ -94,36 +118,50 @@ namespace com.abznak.nnet
 				this.count = count;
 			}
 			public double getSample() {
-				return rnd.NextDouble() * (max - min) + min;
+				return Util.rnd(min, max);
+				
 			}
 		}
 		
 		
 		
-		public NNet nnet {get; private set;}
+		public FeedForwardNNet nnet {get; private set;}
 		public DoubleFunction fn {get; private set;}
 		/*public double range_min {get; private set;}
 		public double range_max {get; private set;}
 		public int range_count {get; private set;}*/
 		public RangeSpec range {get; private set;}
 
-		public FunctionFitter(NNet nnet, DoubleFunction fn, RangeSpec range) {
+		public FunctionFitter(FeedForwardNNet nnet, DoubleFunction fn, RangeSpec range) {
 			this.nnet = nnet;
 			this.fn = fn;
 			this.range = range;
 		}
-		public FunctionFitter makeChild(evolve.MutationFunction mf) {
-			return null;
+		public FunctionFitter makeChild(evolve.MutationFunction mf) {			
+			return new FunctionFitter(nnet.makeChild(mf), fn, range);
 		}
+		
+		static int generation = 0;
 		/// <summary>
 		/// returns negative of square of error between the NN and the fn
 		/// </summary>
 		/// <returns></returns>
 		public double getFitness() {
+			return getFitness("", null);
+		}
+		public double getFitness(string prefix, StreamWriter log) {			
+			long debug_time = DateTime.Now.Ticks;
+			
 			double tot = 0;			
 			for (int i = 0; i < range.count; i++) {
 				double sample = range.getSample();
-				tot += Math.Pow(fn(sample) - nnet.process(new double[] { sample })[0],2);
+				double want = fn(sample);
+				double got = nnet.process(new double[] { sample })[0];
+				if (log != null) {
+					log.WriteLine("{0}, {1}, {2}, {3}, {4}", prefix, debug_time, sample, want, got);
+					
+				}
+				tot += Math.Pow(want - got,2);
 			}
 			return -tot/range.count;
 		}			
@@ -156,10 +194,7 @@ namespace com.abznak.nnet
 			throw new Exception("NYI");
 		}
 		public FeedForwardNNet makeChild(evolve.MutationFunction mf) {
-			return null;
-		}
-		public FeedForwardNNet makeChild(double mutationRate) {
-			return null;
+			return new FeedForwardNNet(mutateWeights(weights, mf), af);
 		}
 		
 		/// <summary>
@@ -168,13 +203,22 @@ namespace com.abznak.nnet
 		/// <param name="weights">a ragged array of weights</param>
 		/// <returns>a copy of weights, with no shared references</returns>
 		public static double[][][] cloneWeights(double[][][] weights) {
+			return mutateWeights(weights, (double d) => d); //less efficient that possible, but I'd rather that than duplicate code
+		}
+		public static double[][][] mutateWeights(double[][][] weights, MutationFunction fn) {			
 			double[][][] ret = new double[weights.Length][][];
 			for (int li = 0; li < weights.Length; li++) {			
 				double[][] old_layer = weights[li];
 				double[][] new_layer = new double[old_layer.Length][];
 				for (int di = 0; di < old_layer.Length; di++) {
 					//can clone the last bit, because there are no references in a double[]
-					new_layer[di] = (double[])old_layer[di].Clone();
+					//new_layer[di] = (double[])old_layer[di].Clone();
+					double [] old_unit = old_layer[di];
+					double [] new_unit = new double[old_unit.Length];
+					for (int si = 0; si < old_unit.Length; si++) {
+						new_unit[si] = fn(old_unit[si]);
+					}
+					new_layer[di] = new_unit;
 				}
 				ret[li] = new_layer;
 			}

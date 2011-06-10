@@ -8,6 +8,7 @@
  */
 using System;
 using NUnit.Framework;
+using System.IO;
 
 using com.abznak.evolve;
 
@@ -40,8 +41,8 @@ namespace com.abznak.nnet
 	[TestFixture]
 	public class TestFunctionFitter {
 		private FunctionFitter.RangeSpec range;
-		private NNet nn;
-		private FunctionFitter ff;
+		private FeedForwardNNet nn;
+		public FunctionFitter ff;
 		double range_min, range_max, range_cnt;
 
 		[Test]
@@ -99,6 +100,7 @@ namespace com.abznak.nnet
 			Assert.AreSame(nn, ff.nnet);
 			Assert.AreSame(fn, ff.fn);									
 			//nn = new FeedForwardNNet(			
+			
 		}
 		
 		[Test]
@@ -142,6 +144,46 @@ namespace com.abznak.nnet
 			Assert.AreEqual(1, hc.generation, "generation should increase after tick");			
 			Assert.AreEqual(1, hc.better_count, "better_count should increase with better indiv");			
 		}
+		// TODO: makeChild funcions aren't tested, logging is hacked together, some things disabled for test
+		// note to self - don't use stochastic /anything/ in tests unless absolutely necessary
+		[Test]
+		public void TestEvolvingFnFitter() {
+			StreamWriter log = null;
+			try {
+				var tff = (new TestFunctionFitter());
+				tff.makeFFImperfect();
+				FunctionFitter ff = tff.ff;
+				var hc = new HillClimber<FunctionFitter>(ff);
+				double oldf = hc.indiv.getFitness();
+				Console.WriteLine("START TestEvolvingFnFitter");
+				long testcode = DateTime.Now.Ticks;
+				log = new StreamWriter("c:\\tims\\tmp\\ntest2.csv", false);
+				log.WriteLine("generation, time, sample, got, want");
+				for (int i = 0; i < 10; i++) {
+					hc.tick(Util.MF_SMALL_RND);
+					double f = hc.indiv.getFitness(""+i, log);
+					
+//fitness is changing because getFitness is stochasitc
+					
+					//Assert.That(f, Is.GreaterThanOrEqualTo(oldf), "checking that fitness increased in generation " + i);
+				}
+				
+			} finally {
+				log.Close();
+				Console.WriteLine("END TestEvolvingFnFitter");
+				
+			}
+		}
+		
+		
+		//[Test]
+		public void MultiTestEvolvingFnFitter() {
+			//TestEvolvingFnFitter has a 50% chance of getting a no-change on the first round, want a good chance of testing both paths
+			for (int i = 0; i < 10; i++) {
+				TestEvolvingFnFitter();
+			}
+		}
+		
 		
 	}
 	
