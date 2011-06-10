@@ -28,9 +28,9 @@ using System.IO;
 
 namespace Abznak.Evolve {
 	public class Util {
-		public static readonly MutationFunction MF_SMALL_RND = (double d) => d + Util.rnd(-.05, .05);		
+		public static readonly MutationFunction MF_SMALL_RND = (double d) => d + Util.Rnd(-.05, .05);		
 		private static Random random = new Random();
-		public static double rnd(double min, double max) {
+		public static double Rnd(double min, double max) {
 			return random.NextDouble() * (max - min) + min;		
 		}
 	}
@@ -43,17 +43,17 @@ namespace Abznak.Evolve {
 	public delegate double MutationFunction(double input);		
 	
 	public interface IMutateable<T> {
-		T makeChild(MutationFunction mf);		
+		T MakeChild(MutationFunction mf);		
 	}
 	public interface IEvolveable<T> : IMutateable<T> {
 		/// <summary>
 		/// get the fitness of the object. Higher fitness is better.
 		/// </summary>
 		/// <returns></returns>
-		double getFitness();
+		double GetFitness();
 	}
 	public interface IEvolvableFactory<T> {
-		T makeIndiv();
+		T MakeIndiv();
 	}
 	public class HillClimber<T> where T : IEvolveable<T> {
 		
@@ -73,10 +73,10 @@ namespace Abznak.Evolve {
 		/// </summary>
 		/// <param name="mf">mutation function to use on the indiv</param>
 		/// <returns>new fitness</returns>
-		public double tick(MutationFunction mf) {
-			T newguy = indiv.makeChild(mf);
-			double old_fitness = indiv.getFitness();
-			double new_fitness = newguy.getFitness();
+		public double Tick(MutationFunction mf) {
+			T newguy = indiv.MakeChild(mf);
+			double old_fitness = indiv.GetFitness();
+			double new_fitness = newguy.GetFitness();
 			double fitness = old_fitness;
 			if (new_fitness > old_fitness) {
 				indiv = newguy;
@@ -119,8 +119,13 @@ namespace Abznak.NeuralNet
 		/// tanh is a nice activation function, it rescales output to be in [-1,1]
 		/// </summary>
 		public static readonly ActivationFunction AF_TANH = delegate(double d) {return Math.Tanh(d);};
-		public abstract double[] process(double[] src);
-		private static double id(double d) { return d;}
+		public abstract double[] Process(double[] src);
+		/// <summary>
+		/// TODO: is this used?
+		/// </summary>
+		/// <param name="d"></param>
+		/// <returns></returns>
+		private static double Id(double d) { return d;}
 	}
 	
 	public class FunctionFitter : Evolve.IEvolveable<FunctionFitter> {
@@ -134,8 +139,8 @@ namespace Abznak.NeuralNet
 				this.max = max;
 				this.count = count;
 			}
-			public double getSample() {
-				return Util.rnd(min, max);
+			public double GetSample() {
+				return Util.Rnd(min, max);
 				
 			}
 		}
@@ -154,26 +159,25 @@ namespace Abznak.NeuralNet
 			this.fn = fn;
 			this.range = range;
 		}
-		public FunctionFitter makeChild(Evolve.MutationFunction mf) {			
-			return new FunctionFitter(nnet.makeChild(mf), fn, range);
+		public FunctionFitter MakeChild(Evolve.MutationFunction mf) {			
+			return new FunctionFitter(nnet.MakeChild(mf), fn, range);
 		}
 		
-		static int generation = 0;
 		/// <summary>
 		/// returns negative of square of error between the NN and the fn
 		/// </summary>
 		/// <returns></returns>
-		public double getFitness() {
-			return getFitness("", null);
+		public double GetFitness() {
+			return GetFitness("", null);
 		}
-		public double getFitness(string prefix, StreamWriter log) {			
+		public double GetFitness(string prefix, StreamWriter log) {			
 			long debug_time = DateTime.Now.Ticks;
 			
 			double tot = 0;			
 			for (int i = 0; i < range.count; i++) {
-				double sample = range.getSample();
+				double sample = range.GetSample();
 				double want = fn(sample);
-				double got = nnet.process(new double[] { sample })[0];
+				double got = nnet.Process(new double[] { sample })[0];
 				if (log != null) {
 					log.WriteLine("{0}, {1}, {2}, {3}, {4}", prefix, debug_time, sample, want, got);
 					
@@ -207,11 +211,11 @@ namespace Abznak.NeuralNet
 		/// checks that the weights array is sane (i.e. the sizes of the rows is correct)
 		/// </summary>
 		/// <returns>true iff weights array is OK</returns>
-		public bool isSane() {
+		public bool IsSane() {
 			throw new Exception("NYI");
 		}
-		public FeedForwardNNet makeChild(Evolve.MutationFunction mf) {
-			return new FeedForwardNNet(mutateWeights(weights, mf), af);
+		public FeedForwardNNet MakeChild(Evolve.MutationFunction mf) {
+			return new FeedForwardNNet(MutateWeights(weights, mf), af);
 		}
 		
 		/// <summary>
@@ -219,10 +223,10 @@ namespace Abznak.NeuralNet
 		/// </summary>
 		/// <param name="weights">a ragged array of weights</param>
 		/// <returns>a copy of weights, with no shared references</returns>
-		public static double[][][] cloneWeights(double[][][] weights) {
-			return mutateWeights(weights, (double d) => d); //less efficient that possible, but I'd rather that than duplicate code
+		public static double[][][] CloneWeights(double[][][] weights) {
+			return MutateWeights(weights, (double d) => d); //less efficient that possible, but I'd rather that than duplicate code
 		}
-		public static double[][][] mutateWeights(double[][][] weights, MutationFunction fn) {			
+		public static double[][][] MutateWeights(double[][][] weights, MutationFunction fn) {			
 			double[][][] ret = new double[weights.Length][][];
 			for (int li = 0; li < weights.Length; li++) {			
 				double[][] old_layer = weights[li];
@@ -241,7 +245,12 @@ namespace Abznak.NeuralNet
 			}
 			return ret;
 		}
-		public override double[] process(double[] src) {
+		/// <summary>
+		/// run the network
+		/// </summary>
+		/// <param name="src">input activations</param>
+		/// <returns>output activations</returns>
+		public override double[] Process(double[] src) {
 			activations = new double[weights.Length+1][];  //note that activations[0] is src, whereas weights[0] is hidden layer 1
 			activations[0] = src; //TODO: deep clone
 			
