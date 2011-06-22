@@ -27,4 +27,5 @@ LGPL 2.1
 v0.1.0
 
 This project uses Semantic Versioning - http://semver.org/
+
 The major version of 0 tells you the API is not yet stable.
