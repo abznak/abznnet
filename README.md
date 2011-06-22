@@ -15,3 +15,12 @@ then copy and modify a sample from src/samples/ or or src/TestAbzNNet.cs
 * abznak on github, twitter
 * http://abznak.com
 
+## License
+
+LGPL 2.1
+
+## Version
+
+v0.1.0
+
+This project uses Semantic Versioning - http://semver.org/
