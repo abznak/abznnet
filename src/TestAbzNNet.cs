@@ -142,7 +142,7 @@ namespace Abznak.NeuralNet
 			Assert.AreSame(ed, hc.indiv);
 			Assert.AreEqual(1, hc.indiv.GetFitness());
 			Assert.AreEqual(0, hc.generation, "generation should start at 0");
-			Assert.AreEqual(0, hc.better_count, "better_count should start at 0");
+			Assert.AreEqual(0, hc.betterCount, "betterCount should start at 0");
 		}
 		
 		[Test]
@@ -151,7 +151,7 @@ namespace Abznak.NeuralNet
 			Assert.AreSame(ed, hc.indiv, "don't change the individual if new one is worse");
 			Assert.AreEqual(1, hc.indiv.GetFitness(), "fitness should not change if new indiv is worse");
 			Assert.AreEqual(1, hc.generation, "generation should increase after tick");
-			Assert.AreEqual(0, hc.better_count, "better_count should not increase with worse indiv");
+			Assert.AreEqual(0, hc.betterCount, "betterCount should not increase with worse indiv");
 		}
 
 		[Test]
@@ -160,7 +160,7 @@ namespace Abznak.NeuralNet
 			Assert.AreNotSame(ed, hc.indiv, "do change the individual if new one is better");
 			Assert.AreEqual(2, hc.indiv.GetFitness(), "fitness should change if new indiv is better");
 			Assert.AreEqual(1, hc.generation, "generation should increase after tick");			
-			Assert.AreEqual(1, hc.better_count, "better_count should increase with better indiv");			
+			Assert.AreEqual(1, hc.betterCount, "betterCount should increase with better indiv");			
 		}
 		// TODO: makeChild funcions aren't tested, logging is hacked together, some things disabled for test
 		// note to self - don't use stochastic /anything/ in tests unless absolutely necessary
@@ -255,8 +255,8 @@ namespace Abznak.NeuralNet
 		public void TestConstruct()
 		{
 			MakeSample();
-			Assert.AreEqual(want_in, nn.input_count);
-			Assert.AreEqual(want_out, nn.output_count);
+			Assert.AreEqual(want_in, nn.inputCount);
+			Assert.AreEqual(want_out, nn.outputCount);
 			//want_weights[1][1][1] = 15;
 			Assert.AreEqual(want_weights, nn.weights);		
 		}
